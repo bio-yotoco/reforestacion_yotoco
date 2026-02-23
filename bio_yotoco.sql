@@ -11,15 +11,18 @@ SET search_path TO guadualitos, public;
 
 CREATE VIEW area_a_reforestar AS
 SELECT
+	a.gid AS id,
 	a.codigo AS cedula_catastral, 
 	ROUND(a.area_ha::numeric,2) AS area_has,
 	ROUND((SUM(ST_Area(ST_Intersection(a.geom, b.geom)))/10000.0)::numeric,2) AS remanente_ecosistema_natural,
-	ROUND(a.area_ha - (SUM(ST_Area(ST_Intersection(a.geom, b.geom)))/10000.0)::numeric,2) AS area_a_reforestar
+	ROUND(a.area_ha - (SUM(ST_Area(ST_Intersection(a.geom, b.geom)))/10000.0)::numeric,2) AS area_a_reforestar,
+	a.prioridad
 FROM
 	catastro_bio_yotoco a
 JOIN
 	fragmentacion_guadualitos b ON ST_Intersects(a.geom, b.geom)
 GROUP BY
+	id,
 	cedula_catastral,
 	a.area_ha
 ORDER BY
@@ -54,7 +57,28 @@ WHERE
 
 ------------------------------------------------------------------------------------------------------------------
 	
+---- Definición de prioridades para la reforestacion por predio
 
+------ Creacion de campo de prioridad en tabla de catastro
+
+ALTER TABLE catastro_bio_yotoco ADD COLUMN prioridad int;
+
+------ Definición de prioridad para reforestacion por predio
+
+UPDATE 
+	catastro_bio_yotoco
+SET
+	prioridad = CASE
+	WHEN area_a_reforestar > 30.0 THEN 1
+	WHEN area_a_reforestar > 10.0 THEN 2
+	WHEN area_a_reforestar < 10.0 THEN 3
+	WHEN area_a_reforestar IS NULL THEN 4
+
+END;
+
+	
+	
+	
 
 
 	
